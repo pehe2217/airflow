@@ -3,6 +3,8 @@ services:
     redis:
         image: 'redis:3.2.7'
         # command: redis-server --requirepass redispass
+        networks:
+            - redis_network
 
     postgres:
         image: postgres:9.6
@@ -10,6 +12,8 @@ services:
             - POSTGRES_USER=airflow
             - POSTGRES_PASSWORD=airflow
             - POSTGRES_DB=airflow
+        networks:
+            - database1_network
         # Uncomment these lines to persist data on the local filesystem.
         #     - PGDATA=/var/lib/postgresql/data/pgdata
         # volumes:
@@ -33,14 +37,29 @@ services:
             - ./dags:/usr/local/airflow/dags
             # Uncomment to include custom plugins
             # - ./plugins:/usr/local/airflow/plugins
-        ports:
-            - "8080:8080"
+        # ports:  # We will not directly communication with webserver, but with nginx
+        #    - "8080:8080"
+        networks:
+            - nginx_network
+            - database1_network
+            - redis_network
         command: webserver
         healthcheck:
             test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
             interval: 30s
             timeout: 30s
             retries: 3
+    nginx:
+        image: nginx:1.13
+        ports:
+          - 80:80
+        volumes:
+            - ./config/nginx/conf.d:/etc/nginx/conf.d
+            - ./data/images:/data/images
+        depends_on:
+            - webserver
+        networks:
+            - nginx_network
 
     flower:
         image: puckel/docker-airflow:1.10.1
@@ -50,6 +69,9 @@ services:
         environment:
             - EXECUTOR=Celery
             # - REDIS_PASSWORD=redispass
+        networks:
+            - database1_network
+            - redis_network
         ports:
             - "5555:5555"
         command: flower
@@ -63,6 +85,9 @@ services:
             - ./dags:/usr/local/airflow/dags
             # Uncomment to include custom plugins
             # - ./plugins:/usr/local/airflow/plugins
+        networks:
+            - database1_network
+            - redis_network
         environment:
             - LOAD_EX=n
             - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
@@ -82,6 +107,9 @@ services:
             - ./dags:/usr/local/airflow/dags
             # Uncomment to include custom plugins
             # - ./plugins:/usr/local/airflow/plugins
+        networks:
+            - database1_network
+            - redis_network
         environment:
             - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
             - EXECUTOR=Celery
@@ -90,3 +118,11 @@ services:
             # - POSTGRES_DB=airflow
             # - REDIS_PASSWORD=redispass
         command: worker
+
+networks:
+    nginx_network:
+        driver: bridge
+    database1_network:
+        driver: bridge
+    redis_network:
+        driver: bridge
