@@ -12,7 +12,7 @@ default_args = {
     'owner': 'Advisa',
     'depends_on_past': True,
     'start_date': datetime(2019, 1, 1),
-    'email': ['per.hedbrant@netlight.com'],
+    'email': ['per.hedbrant@advisa.se'],
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 1,
@@ -24,7 +24,7 @@ default_args = {
 }
 
 dag = DAG(
-    'pers_dag',
+    'example_dag',
     default_args=default_args,
     schedule_interval=timedelta(hours=1),
     catchup=True,
